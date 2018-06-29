@@ -3,7 +3,8 @@
     <h1>{{ msg }}</h1>
     <h2>DB is <span v-if="this.dbOpen">open</span><span v-else>closed</span></h2>
     <h3 v-show="objectStoresReady">Object stores are ready</h3>
-    <button v-on:click="addCustomer()">Add Customer</button>
+    <input type="text" name="goal" id="goalInput" v-model="goal.goalName">
+    <button v-on:click="addGoal()">Add Customer</button>
   </div>
 </template>
 
@@ -16,12 +17,16 @@ export default {
       msg: 'IndexedDB Test',
       dbOpen: false,
       objectStoresReady: false,
-      db: null
+      db: null,
+      goal: {
+        goalName: "",
+        goalDate: new Date()
+      }
     }
   },
 
   mounted: function (params) {
-    let request = window.indexedDB.open("MyTestDatabase", 1);
+    let request = window.indexedDB.open("MyTestDatabase", 2);
     request.onerror = this.handleDBOpenError;
     request.onsuccess = this.handleDBOpenSuccess;
     request.onupgradeneeded = this.handleUpgradeNeededEvent;
@@ -44,10 +49,28 @@ export default {
 
     handleUpgradeNeededEvent: function (event) {
       let db = event.target.result;
-      let objectStore = db.createObjectStore("customers", { keyPath: "ssn" });
-      objectStore.createIndex('name', 'name', { unique: false });
-      objectStore.createIndex('email', 'email', { unique: true });
+      let objectStore = db.createObjectStore("goals", { autoIncrement: true });
+      objectStore.createIndex('goalName', 'goalName', { unique: false });
+      objectStore.createIndex('goalDate', 'goalDate', { unique: false });
       this.objectStoresReady = true;
+    },
+
+    addGoal: function() {
+      let objStore = this.db.transaction('goals', 'readwrite').objectStore('goals');
+      let request = objStore.add(this.goal);
+
+      request.onsuccess = function (event) {
+        console.log('Added successfully');
+      }
+
+
+      request.error = function (event) {
+        console.group();
+        console.error('Error adding to IndexedDB');
+        console.error(event);
+        console.groupEnd();
+      }
+
     },
 
     addCustomer: function () {
